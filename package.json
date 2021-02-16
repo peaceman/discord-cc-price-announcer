@@ -1,0 +1,21 @@
+{
+  "name": "discord-cc-price-announcer",
+  "version": "1.0.0",
+  "description": "",
+  "main": "index.js",
+  "scripts": {
+    "start": "node index.js",
+    "test": "echo \"Error: no test specified\" && exit 1"
+  },
+  "author": "nixalio@gmail.com",
+  "license": "MIT",
+  "dependencies": {
+    "@discordjs/opus": "^0.4.0",
+    "discord.js": "^12.5.1",
+    "dotenv": "^8.2.0",
+    "ffmpeg-static": "^4.2.7",
+    "sodium": "^3.0.2",
+    "temp": "^0.9.4",
+    "ws": "^7.4.3"
+  }
+}
