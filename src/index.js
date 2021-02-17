@@ -17,6 +17,7 @@ const tickerConnection = new BitpandaTickerConnection(config.ticker.bitpanda);
 tickerConnection.on('priceTick', ({currency, price}) => exchangeRates[currency] = price);
 
 const client = new Discord.Client();
+const announcementLocks = new WeakMap();
 
 client.once('ready', async () => {
     console.log('Established discord connection');
@@ -99,7 +100,20 @@ async function dispatchMessageToCommandHandler(message) {
     }
 }
 
+function createAnnouncementLock() {
+    let resolve = undefined;
+    const promise = new Promise(x => resolve = x);
+
+    return [promise, resolve]
+}
+
 async function announcePrices(guild, currencies = []) {
+    const currentLock = announcementLocks.get(guild) || Promise.resolve();
+    const [myLock, resolveLock] = createAnnouncementLock();
+
+    announcementLocks.set(guild, myLock);
+    await currentLock;
+
     currencies = currencies.map(s => String(s).toLowerCase());
     console.log('requested currencies', currencies);
     const data = await joinRegisteredVoiceChannels(guild);
@@ -116,7 +130,10 @@ async function announcePrices(guild, currencies = []) {
         return Promise.allSettled(
             data
                 .map(([channel, connection]) => {
-                    return playSound(filePath, connection);
+                    return playSound(filePath, connection)
+                        .then(() => {
+                            console.log(`finished playing sound ${filePath}`);
+                        });
                 })
         );
     }
@@ -160,6 +177,10 @@ async function announcePrices(guild, currencies = []) {
 
     // leave joined channels
     for (const [channel, connection] of data) {
+        console.debug('leave channel', channel.name);
         connection.disconnect();
     }
+
+    await new Promise((resolve) => setTimeout(resolve, 2000));
+    resolveLock();
 }
