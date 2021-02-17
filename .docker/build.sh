@@ -14,6 +14,7 @@ docker pull "$DOCKER_REPO":"$DOCKER_TARGET_TAG" || true
 docker build \
     --iidfile "$RUNTIME_IMAGE_ID_FILE" \
     --file Dockerfile \
+    --cache-from "$DOCKER_REPO":"$DOCKER_TARGET_TAG" \
     .
 
 export RUNTIME_IMAGE_ID=$(cat "$RUNTIME_IMAGE_ID_FILE")
