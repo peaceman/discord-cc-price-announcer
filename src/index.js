@@ -1,17 +1,15 @@
 'use strict';
 
-const config = require('./config.js');
-
-
 const Discord = require('discord.js');
-const { ChannelIdStorage } = require('./channel-id-storage');
-const { BitpandaTickerConnection } = require('./bitpanda');
-const { say } = require('./say');
 const fs = require('fs');
 const temp = require('temp');
 
+const config = require(`${process.cwd()}/config.js`);
+const { ChannelIdStorage } = require('./channel-id-storage');
+const { BitpandaTickerConnection } = require('./bitpanda');
+const { say } = require('./say');
 
-const channelIds = new ChannelIdStorage('channels.json');
+const channelIds = new ChannelIdStorage([config.channelStorageFolder, 'channels.json'].filter(v => v.length > 0).join('/'));
 const voiceConnections = new Map();
 const exchangeRates = {};
 

@@ -1,0 +1,16 @@
+version: '2.4'
+services:
+  ccpa:
+    image: peaceman/discord-cc-price-announcer
+    restart: always
+    volumes:
+      - ./config.js:/app/config.js
+      - storage:/app/storage
+      - "${GOOGLE_APPLICATION_CREDENTIALS}:/app/gcp-creds.json"
+    env_file: .env
+    environment:
+      GOOGLE_APPLICATION_CREDENTIALS: /app/gcp-creds.json
+      CHANNEL_STORAGE_FOLDER: /app/storage
+
+volumes:
+  storage:

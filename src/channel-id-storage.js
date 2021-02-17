@@ -1,6 +1,7 @@
 const fs = require('fs');
 
 function ChannelIdStorage(filePath) {
+    console.log('opened channel id storage', filePath);
     this.filePath = filePath;
 }
 
