@@ -1,7 +1,7 @@
 version: '2.4'
 services:
   ccpa:
-    image: peaceman/discord-cc-price-announcer
+    image: peaceman/discord-cc-price-announcer:${APP_VERSION}
     restart: always
     volumes:
       - ./config.js:/app/config.js
