@@ -36,6 +36,16 @@ const commandHandlers = {
 
         channelIds.addChannel(voiceChannel.id);
     },
+    unregister: async (msg, args) => {
+        console.log('received unregister message with args', args);
+
+        const guild = msg.guild;
+        if (!guild) return;
+
+        const voiceChannel = msg.member.voice.channel;
+
+        channelIds.removeChannel(voiceChannel.id);
+    },
     announce: async (msg, args) => {
         const guild = msg.guild;
         if (!guild) return;

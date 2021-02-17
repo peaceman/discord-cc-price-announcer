@@ -45,6 +45,14 @@ ChannelIdStorage.prototype.addChannel = async function (channelId) {
     await this.persistChannels();
 };
 
+ChannelIdStorage.prototype.removeChannel = async function (channelId) {
+    await this.getChannels();
+    if (!this.channels.has(channelId)) return;
+
+    this.channels.delete(channelId);
+    await this.persistChannels();
+};
+
 ChannelIdStorage.prototype.persistChannels = async function () {
     return new Promise((resolve, reject) => {
         fs.writeFile(this.filePath, JSON.stringify([...this.channels.values()]), err => {
