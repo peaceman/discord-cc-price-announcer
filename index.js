@@ -39,51 +39,26 @@ const commandHandlers = {
         channelIds.addChannel(voiceChannel.id);
     },
     announce: async (msg, args) => {
-        console.log('start reading out exchange rates');
+        const guild = msg.guild;
+        if (!guild) return;
 
-        // join registered channels
-        const data = await joinRegisteredVoiceChannels();
-
-        for (const [currency, price] of Object.entries(exchangeRates)) {
-            console.log(currency, price);
-
-            // generate sound file
-            const filePath = temp.path();
-            const text = `current price of ${currency} is ${price} eur`;
-
-            await say(filePath, config.voice, text);
-
-            const playSoundPromises = data
-                .map(([channel, connection]) => {
-                    return playSound(filePath, connection)
-                        .then(() => {
-                            console.log(`played sound at ${channel.name}`);
-                        });
-                });
-
-            await Promise.allSettled(playSoundPromises);
-
-            fs.rm(filePath, (e) => {
-                if (e) {
-                    console.error('failed to delete sound file', filePath);
-                }
-            });
-        }
-
-        // leave joined channels
-        for (const [channel, connection] of data) {
-            connection.disconnect();
-        }
+        console.log(`announce prices in guild ${guild.name}`);
+        announcePrices(guild);
     },
 };
 
-function joinRegisteredVoiceChannels() {
+function joinRegisteredVoiceChannels(guild) {
     return channelIds.getChannels()
         .then(channels => channels.map(channelId => client.channels.fetch(channelId)))
         .then(fetchChannelPromises => Promise.allSettled(fetchChannelPromises))
         .then(results => results
             .filter(p => p.status === 'fulfilled')
             .map(p => p.value))
+        .then(channels => {
+            return guild
+                ? channels.filter(ch => ch.guild.id === guild.id)
+                : channels;
+        })
         .then(channels => {
             const joinChannelPromises = channels.map(c => c.join());
 
@@ -114,4 +89,39 @@ async function dispatchMessageToCommandHandler(message) {
     if (command in commandHandlers) {
         await (commandHandlers[command])(message, args);
     }
-};
+}
+
+async function announcePrices(guild) {
+    const data = await joinRegisteredVoiceChannels(guild);
+
+    for (const [currency, price] of Object.entries(exchangeRates)) {
+        console.log(currency, price);
+
+        // generate sound file
+        const filePath = temp.path();
+        const text = `current price of ${currency} is ${price} eur`;
+
+        await say(filePath, config.voice, text);
+
+        const playSoundPromises = data
+            .map(([channel, connection]) => {
+                return playSound(filePath, connection)
+                    .then(() => {
+                        console.log(`played sound at ${channel.guild.name} / ${channel.name}`);
+                    });
+            });
+
+        await Promise.allSettled(playSoundPromises);
+
+        fs.rm(filePath, (e) => {
+            if (e) {
+                console.error('failed to delete sound file', filePath);
+            }
+        });
+    }
+
+    // leave joined channels
+    for (const [channel, connection] of data) {
+        connection.disconnect();
+    }
+}
