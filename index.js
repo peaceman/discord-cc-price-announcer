@@ -94,24 +94,34 @@ async function dispatchMessageToCommandHandler(message) {
 async function announcePrices(guild) {
     const data = await joinRegisteredVoiceChannels(guild);
 
+    const announcementPrefixFilePath = temp.path();
+    const announcementSuffixFilePath = temp.path();
+
+    await Promise.all([
+        say(announcementPrefixFilePath, config.voice, config.announcement.prefix),
+        say(announcementSuffixFilePath, config.voice, config.announcement.suffix),
+    ]);
+
+    const playSoundFile = (filePath) => {
+        return Promise.allSettled(
+            data
+                .map(([channel, connection]) => {
+                    return playSound(filePath, connection);
+                })
+        );
+    }
+
+    await playSoundFile(announcementPrefixFilePath);
+
     for (const [currency, price] of Object.entries(exchangeRates)) {
         console.log(currency, price);
 
         // generate sound file
         const filePath = temp.path();
-        const text = `current price of ${currency} is ${price} eur`;
+        const text = `current price of ${currency} is ${price} EUR`;
 
         await say(filePath, config.voice, text);
-
-        const playSoundPromises = data
-            .map(([channel, connection]) => {
-                return playSound(filePath, connection)
-                    .then(() => {
-                        console.log(`played sound at ${channel.guild.name} / ${channel.name}`);
-                    });
-            });
-
-        await Promise.allSettled(playSoundPromises);
+        await playSoundFile(filePath);
 
         fs.rm(filePath, (e) => {
             if (e) {
@@ -119,6 +129,20 @@ async function announcePrices(guild) {
             }
         });
     }
+
+    await playSoundFile(announcementSuffixFilePath);
+
+    fs.rm(announcementPrefixFilePath, (e) => {
+        if (e) {
+            console.error('failed to delete sound file', filePath);
+        }
+    });
+
+    fs.rm(announcementSuffixFilePath, (e) => {
+        if (e) {
+            console.error('failed to delete sound file', filePath);
+        }
+    });
 
     // leave joined channels
     for (const [channel, connection] of data) {

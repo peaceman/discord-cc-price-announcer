@@ -6,7 +6,7 @@ const client = new textToSpeech.TextToSpeechClient();
 
 async function googleTextToSpeech(targetFile, voice, msg) {
     const request = {
-        input: {text: msg},
+        input: {ssml: `<speak>${msg}</speak>`},
         audioConfig: {audioEncoding: 'OGG_OPUS'},
         voice
     };
