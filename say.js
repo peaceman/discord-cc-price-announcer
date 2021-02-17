@@ -1,28 +1,21 @@
-const { spawn } = require('child_process');
+const textToSpeech = require('@google-cloud/text-to-speech');
+const fs = require('fs');
+const util = require('util');
 
-function say(targetFile, voice, msg) {
-    const proc = spawn('say', ['-o', targetFile, '-v', voice, msg], { stdio: ['pipe', 'pipe', process.stderr]});
+const client = new textToSpeech.TextToSpeechClient();
 
-    return new Promise((resolve, reject) => {
-        proc.on('exit', (code) => {
-            console.debug(`say proc exited with code ${code}`);
-            resolve();
-        });
+async function googleTextToSpeech(targetFile, voice, msg) {
+    const request = {
+        input: {text: msg},
+        audioConfig: {audioEncoding: 'OGG_OPUS'},
+        voice
+    };
 
-        proc.on('close', (code, signal) => {
-            if (code !== undefined && code !== 0) {
-                reject(`proc closed with non zero exit code ${code}`);
-            } else {
-                resolve();
-            }
-
-            console.debug(`say proc closed with code ${code} and/or signal ${signal}`);
-        });
-
-        proc.on('error', reject);
-    });
+    const [response] = await client.synthesizeSpeech(request);
+    const writeFile = util.promisify(fs.writeFile);
+    await writeFile(targetFile, response.audioContent, 'binary');
 }
 
 module.exports = {
-    say
+    say: googleTextToSpeech
 };

@@ -48,7 +48,7 @@ const commandHandlers = {
             console.log(currency, price);
 
             // generate sound file
-            const filePath = temp.path({suffix: '.flac'});
+            const filePath = temp.path();
             const text = `current price of ${currency} is ${price} eur`;
 
             await say(filePath, config.voice, text);

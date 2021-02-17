@@ -6,7 +6,7 @@ dotenv.config();
 const config = {
     token: process.env.DISCORD_BOT_TOKEN,
     prefix: 'ccpa',
-    voice: 'samantha',
+    voice: {languageCode: 'en-IN', name: 'en-IN-Wavenet-B'},
     ticker: {
         bitpanda: {
             uri: 'wss://streams.exchange.bitpanda.com',
