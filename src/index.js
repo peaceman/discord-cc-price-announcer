@@ -41,7 +41,7 @@ const commandHandlers = {
         if (!guild) return;
 
         console.log(`announce prices in guild ${guild.name}`);
-        announcePrices(guild);
+        announcePrices(guild, args);
     },
 };
 
@@ -89,7 +89,9 @@ async function dispatchMessageToCommandHandler(message) {
     }
 }
 
-async function announcePrices(guild) {
+async function announcePrices(guild, currencies = []) {
+    currencies = currencies.map(s => String(s).toLowerCase());
+    console.log('requested currencies', currencies);
     const data = await joinRegisteredVoiceChannels(guild);
 
     const announcementPrefixFilePath = temp.path();
@@ -112,6 +114,10 @@ async function announcePrices(guild) {
     await playSoundFile(announcementPrefixFilePath);
 
     for (const [currency, price] of Object.entries(exchangeRates)) {
+        if (currencies.length && !(currencies.includes(currency.toLowerCase().trim()))) {
+            continue;
+        }
+
         console.log(currency, price);
 
         // generate sound file
