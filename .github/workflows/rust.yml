@@ -1,0 +1,23 @@
+name: docker
+
+on:
+  push:
+
+jobs:
+  docker:
+    name: Build and publish docker image
+    runs-on: ubuntu-latest
+    needs: [check, test, lints]
+    steps:
+      - name: Checkout sources
+        uses: actions/checkout@v2
+        with:
+          submodules: true
+
+      - name: docker build and publish
+        env:
+          DOCKER_LOGIN_USERNAME: ${{ secrets.DOCKER_LOGIN_USERNAME }}
+          DOCKER_LOGIN_PASSWORD: ${{ secrets.DOCKER_LOGIN_PASSWORD }}
+        run: |
+          source .docker/build.sh
+          ./.docker/docker-hub-publish.sh
