@@ -10,8 +10,8 @@ RUNTIME_IMAGE_ID_FILE=$(mktemp)
 
 docker pull "$DOCKER_REPO":"$DOCKER_TARGET_TAG" || true
 
-# build the runtime stage, using cached compile stage
-docker build --target runtime-image \
+# build the runtime stage
+docker build \
     --iidfile "$RUNTIME_IMAGE_ID_FILE" \
     --file Dockerfile \
     .
