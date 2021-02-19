@@ -51,8 +51,8 @@ const commandHandlers = {
         const guild = msg.guild;
         if (!guild) return;
 
-        console.log(`announce prices in guild ${guild.name}`);
-        announcePrices(guild, args);
+        console.log(`announce something in guild ${guild.name}`);
+        announce(guild, args);
     },
 };
 
@@ -107,13 +107,44 @@ function createAnnouncementLock() {
     return [promise, resolve]
 }
 
-async function announcePrices(guild, currencies = []) {
+async function announce(guild, words = []) {
     const currentLock = announcementLocks.get(guild) || Promise.resolve();
     const [myLock, resolveLock] = createAnnouncementLock();
 
     announcementLocks.set(guild, myLock);
     await currentLock;
 
+    // when the first word is 'custom' announce all remaining words as is
+    if (words.length > 0 && (words[0] || '') === 'custom') {
+        await announceWords(guild, words.slice(1));
+    } else {
+        await announcePrices(guild, words);
+    }
+
+    await new Promise((resolve) => setTimeout(resolve, 2000));
+    resolveLock();
+}
+
+async function announceWords(guild, words = []) {
+    const message = words.join(' ');
+
+    // generate sound file
+    const messageFilePath = temp.path();
+    await say(messageFilePath, config.voice, message);
+
+    try {
+
+    } finally {
+        const data = await joinRegisteredVoiceChannels(guild);
+        await playSoundFileInChannels(data, messageFilePath);
+
+        leaveVoiceChannels(data);
+        deleteSoundFile(messageFilePath)
+            .catch(console.error);
+    }
+}
+
+async function announcePrices(guild, currencies = []) {
     currencies = currencies.map(s => String(s).toLowerCase());
     console.log('requested currencies', currencies);
     const data = await joinRegisteredVoiceChannels(guild);
@@ -126,19 +157,7 @@ async function announcePrices(guild, currencies = []) {
         say(announcementSuffixFilePath, config.voice, config.announcement.suffix),
     ]);
 
-    const playSoundFile = (filePath) => {
-        return Promise.allSettled(
-            data
-                .map(([channel, connection]) => {
-                    return playSound(filePath, connection)
-                        .then(() => {
-                            console.log(`finished playing sound ${filePath}`);
-                        });
-                })
-        );
-    }
-
-    await playSoundFile(announcementPrefixFilePath);
+    await playSoundFileInChannels(data, announcementPrefixFilePath);
 
     for (const [currency, price] of Object.entries(exchangeRates)) {
         if (currencies.length && !(currencies.includes(currency.toLowerCase().trim()))) {
@@ -152,35 +171,50 @@ async function announcePrices(guild, currencies = []) {
         const text = `current price of ${currency} is ${price} EUR`;
 
         await say(filePath, config.voice, text);
-        await playSoundFile(filePath);
+        await playSoundFileInChannels(data, filePath);
 
-        fs.rm(filePath, (e) => {
-            if (e) {
-                console.error('failed to delete sound file', filePath);
-            }
-        });
+        deleteSoundFile(filePath)
+            .catch(console.error);
     }
 
-    await playSoundFile(announcementSuffixFilePath);
+    await playSoundFileInChannels(data, announcementSuffixFilePath);
 
-    fs.rm(announcementPrefixFilePath, (e) => {
-        if (e) {
-            console.error('failed to delete sound file', filePath);
-        }
-    });
+    deleteSoundFile(announcementPrefixFilePath)
+        .catch(console.error);
+    deleteSoundFile(announcementSuffixFilePath)
+        .catch(console.error);
 
-    fs.rm(announcementSuffixFilePath, (e) => {
-        if (e) {
-            console.error('failed to delete sound file', filePath);
-        }
-    });
+    leaveVoiceChannels(data);
+}
 
+function leaveVoiceChannels(data) {
     // leave joined channels
     for (const [channel, connection] of data) {
         console.debug('leave channel', channel.name);
         connection.disconnect();
     }
+}
 
-    await new Promise((resolve) => setTimeout(resolve, 2000));
-    resolveLock();
+async function deleteSoundFile(filePath) {
+    return new Promise((resolve, reject) => {
+        fs.rm(filePath, e => {
+            if (e) {
+                reject(e);
+            } else {
+                resolve();
+            }
+        });
+    });
+}
+
+async function playSoundFileInChannels(data, filePath) {
+    return Promise.allSettled(
+        data
+            .map(([channel, connection]) => {
+                return playSound(filePath, connection)
+                    .then(() => {
+                        console.log(`finished playing sound ${filePath}`);
+                    });
+            })
+    );
 }
